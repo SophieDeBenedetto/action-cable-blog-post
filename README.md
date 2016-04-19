@@ -274,6 +274,38 @@ module ApplicationCable
 end
 ```
 
+Okay, let's move on to writing our own Action Cable code. 
+
+First things first, setting up the instance of the Action Cable server. 
+
+### Configuring The Action Cable Server
+
+#### Step 1: Establish the Socket Connection
+
+First, we need to mount the Action Cable server on a sub-URI of our main application. 
+
+In `routes.rb`:
+
+```ruby
+Rails.application.routes.draw do
+
+  # Serve websocket cable requests in-process
+  mount ActionCable.server => '/cable'
+
+  resources :chatrooms, param: :slug
+  resources :messages
+  
+  ...
+
+end
+```
+
+Now, Action Cable will be listening for WebSocket requests on `ws://localhost:3000/cable`. It will do so by using the Rack socket hijacking API. When our main application is instantiated, an instance of Action Cable will also be created. Action Cable will, per our instructions in the `route.rb` file, establish a WebSocket connection on `localhost:3000/cable`, and begin listening for socket requests on that URI. 
+
+Now that we've established the socket connection on the server-side, we need to create the client of the WebSocket connection, called the **consumer.**
+
+#### Step 2: 
+
 
  
 
