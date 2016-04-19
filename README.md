@@ -61,13 +61,221 @@ Lastly, Action Cable uses Redis as a data store for transient data, syncing cont
 
 Now that we have a basic understanding of how Action Cable works, we'll build out a basic chatting application in Rails 5, taking a closer look at how Action Cable behaves along the way. 
 
-### Getting Started
+## Building a Chat with Action Cable
+
+### Getting Started: Application Architecture
+
+In this example, we'll build a basic chatting application in which users can log in or sign up to create a username, then create a new chatroom or choose from an existing chatroom and start messaging. We'll use Action Cable to ensure that our chat feature is real-time: any users in a given chatroom will see new messages (their own and the messages of other users) appear in the chat, without reloading the page or engaging in any other action to request new content. 
+
+You can follow along below, check out the code for this project on [GitHub](https://github.com/SophieDeBenedetto/action-cable-example), visit my deployment [here](https://action-cable-example.herokuapp.com/) or, deploy your own copy by clicking this button. 
+
+
+### Starting a new Rails 5 app with Action Cable
+
+At the time of writing, Rails 5 is in Beta 3. So, to start a new Rails 5 app, we need to do the following. 
+
+* First, make sure you have installed and are using Ruby 2.3.0. 
+* Then:
+
+```bash
+$ gem install rails --pre
+Successfully installed rails-5.0.0.beta3
+Parsing documentation for rails-5.0.0.beta3
+Done installing documentation for rails after 1 seconds
+1 gem installed
+```
+
+* Now we're ready to generate our new app!
+
+```bash
+rails new action-cable-example --database=postgresql
+```
+
+This will generate a shiny new Rails 5 app, complete with all kinds of goodies in our Gemfile. Open up the Gemfile and you'll notice that we have:
+
+* The latest version of Rails
+
+```ruby
+# Gemfile
+gem 'rails', '>= 5.0.0.beta3', '< 5.1'
+```
+
+* Redis (which we will need to un-comment out): 
+
+```ruby
+# Gemfile
+# gem 'redis', '~> 3.0'
+```
+
+* Puma (since Action Cable needs a threaded server):
+
+```ruby
+# Gemfile
+gem 'puma'
+```
+
+Make sure you've un-commented out the Redis gem from your Gemfile, and `bundle install`. 
+ 
+### Domain Model
+ 
+Our domain model is simple: we have users, chatrooms and messages. 
+ 
+A **chatroom** will have a topic and it will have many messages. A **message** will have content, and it will belong to a user and belong to a chatroom. A **user** will have a username, and it will have many messages. 
+
+The remainder of this tutorial will assume that we have already generated the migrations necessary to create the chatrooms, messages and users table, and that we have already defined our Chatroom, User and Message model to have the relationships described above. Let's take a quick look at our models before we move on. 
+
+```ruby
+# app/models/chatroom.rb
+
+class Chatroom < ApplicationRecord
+  has_many :messages, dependent: :destroy
+  has_many :users, through: :messages
+  validates :topic, presence: true, uniqueness: true, case_sensitive: false
+  before_validation :sanitize, :slugify
+end
+```
+
+```ruby
+# app/models/message.rb
+
+class Message < ApplicationRecord
+  belongs_to :chatroom
+  belongs_to :user
+end
+```
+
+```ruby
+# app/models/user.rb
+
+class User < ApplicationRecord
+  has_many :messages
+  has_many :chatrooms, through: :messages
+  validates :username, presence: true, uniqueness: true
+end
+```
+
+### Application Flow
+
+We'll also assume that our routes and controllers are up and running. A user can log in with a username, visit a chatroom and create new messages via a form on the chatroom's show page. 
+
+So, the `#show` action of the Chatrooms Controller sets up both a `@chatroom` instance as well as a new, empty `@message` instance that will be used to build our form for a new message, on the chatroom's show page:
+
+```ruby
+# app/controllers/chatrooms_controller.rb
+
+class ChatroomsController < ApplicationController
+  ...
+  
+  def show
+    @chatroom = Chatroom.find_by(slug: params[:slug])
+    @message = Message.new
+  end
+end
+```
+
+Our chatroom show page renders the partial for the message form:
+
+```erb
+# app/views/chatrooms/show.html.erb
+
+<div class="row col-md-8 col-md-offset-2">
+  <h1><%= @chatroom.topic %></h1>
+
+<div class="panel panel-default">
+  <% if @chatroom.messages.any? %>
+    <div class="panel-body" id="messages">
+      <%= render partial: 'messages/message', collection: @chatroom.messages%>
+    </div>
+  <%else%>
+    <div class="panel-body hidden" id="messages">
+    </div>
+  <%end%>
+</div>
+
+  <%= render partial: 'messages/message_form', locals: {message: @message, chatroom: @chatroom}%>
+</div>
+```
+
+And our form for a new message looks like this:
+
+```erb
+# app/views/messages/_message_form.html.erb
+
+<%=form_for message, remote: true, authenticity_token: true do |f|%>
+  <%= f.label :your_message%>:
+  <%= f.text_area :content, class: "form-control", data: {textarea: "message"}%>
+
+  <%= f.hidden_field :chatroom_id, value: chatroom.id %>
+  <%= f.submit "send", class: "btn btn-primary", style: "display: none", data: {send: "message"}%>
+<%end%>
+```
+
+Our new message forms posts to the create action of the Messages Controller
+
+```ruby
+class MessagesController < ApplicationController
+
+  def create
+    message = Message.new(message_params)
+    message.user = current_user
+    if message.save
+      # do some stuff
+    else 
+      # redirect_to chatrooms_path
+    end
+  end
+
+  private
+
+    def message_params
+      params.require(:message).permit(:content, :chatroom_id)
+    end
+end
+```
+
+Okay, now that we have our app up and running, let's get those real-time messages working with Action Cable 
+
+## Implementing Action Cable
+
+Before we define our very own Messages Channel and start working directly with Action Cable code, let's take a quick tour of the Action Cable infrastructure that Rails 5 provides for us. 
+
+When we generated our brand new Rails 5 application, the following directory was generated for us:
+
+```bash
+├── app
+    ├── channels
+        ├── application_cable
+        ├── channel.rb
+        └── connection.rb
+```
+
+Our `ApplicationCable` module has a `Channel` and a `Connection` class defined for us. 
+
+The `Connection` class is where we would authorize the incoming connection––for example if we wanted to establish a channel that required user authorization, like for a given user's inbox. We'll also leave this class alone as any user can join any chatroom at any time. 
+
+```ruby
+module ApplicationCable
+  class Connection < ActionCable::Connection::Base
+  end
+end
+```
+
+
+However, the Messages Channel that we will define shortly will inherit from `ApplicationCable::Channel`.
+
+The `Channel` class is where we would place shared logic among any additional channels that we will define. We'll only be creating one channel, the Messages Channel, so we'll leave this class alone. 
+
+```ruby
+# app/channels/channel.rb
+
+module ApplicationCable
+  class Channel < ActionCable::Channel::Base
+  end
+end
+```
+
 
  
-
-
-
-
 
 I. Real Time Communication and Rails
  * Rails and WebSocket protocol: 
