@@ -1,5 +1,9 @@
 # Real Time Rails: Implementing WebSockets in Rails 5 with Action Cable
 
+*It's been one year since DHH debuted Action Cable at RailsConf 2015. So, what's it really like to implement "the highlight of Rails 5"?*
+
+-----------
+
 
 Recent years have seen the speedy rise of "the real-time web". In fact, when we think of many of the popular web apps we use every day, we are probably thinking of real-time features––new posts appearing at the top of your Facebook news feed, new emails appearing in your Gmail inbox, new Tweets showing up at the top of your feed. All of this without you having to so much as lift a finger to click a button. 
 
@@ -210,7 +214,7 @@ And our form for a new message looks like this:
 <%end%>
 ```
 
-Our new message forms posts to the create action of the Messages Controller
+Our new message form posts to the create action of the Messages Controller
 
 ```ruby
 class MessagesController < ApplicationController
@@ -278,9 +282,9 @@ Okay, let's move on to writing our own Action Cable code.
 
 First things first, setting up the instance of the Action Cable server. 
 
-### Configuring The Action Cable Server
+### Establishing the WebSocket Connection
 
-#### Step 1: Establish the Socket Connection
+#### Step 1: Establish the Socket Connection: Server-Side
 
 First, we need to mount the Action Cable server on a sub-URI of our main application. 
 
@@ -304,7 +308,189 @@ Now, Action Cable will be listening for WebSocket requests on `ws://localhost:30
 
 Now that we've established the socket connection on the server-side, we need to create the client of the WebSocket connection, called the **consumer.**
 
-#### Step 2: 
+#### Step 2: Establish the Socket Connection: Client-Side
+
+In `app/assets/javascripts/channels` we'll create a file: `chatrooms.js`. Here is where we will define the client-side instance of our WebSocket connection. 
+
+```javascript
+// app/assets/javascripts/channels/chatrooms.js
+
+//= require cable
+//= require_self
+//= require_tree .
+
+this.App = {};
+
+App.cable = ActionCable.createConsumer();  
+```
+
+**Note:** Make sure you require the `channels` subdirectory in your asset pipeline by adding it to your `application.js` manifest file:
+
+```javascript
+// app/assets/javascripts/application.js
+
+//= require_tree ./channels
+```
+
+Notice that the `ActionCable.createConsumer` function *doesn't specify the socket URI, `ws://localhost:3000/cable`. 
+
+How does the consumer know where to connect? We'll specify the development and production socket URIs in the appropriate environment files, and pass it through to the consumer via the `action_cable_meta_tag`.
+
+In development
+
+```ruby
+# config/development.rb
+Rails.application.configure do 
+  config.action_cable.url = "ws://localhost:3000/cable"
+end 
+```
+
+The following line, included for us in the head of our application layout:
+
+```erb
+# app/vippews/layouts/application.html.erb
+
+<%= action_cable_meta_tag %>
+```
+
+**Note:** The default Action Cable URI is in fact `ws://localhost:3000/cable`, so we could have gotten away without configuring the cable url in development. I wanted to expose this configuration for anyone who wants to customize it in the future. 
+
+
+### Building the Channel
+
+So far, we've used Action Cable to create a persistent connection, listening for any WebSocket requests on `ws://localhost:3000/cable`. This isn't enough to get our real-time messaging feature, however. We need to define a special Messages Channel and instruct the appropriate parts of our application to broadcast to and stream from this channel. Let's get started. 
+
+#### Step 1: Define the Channel
+
+Defining a channel with Action Cable is easy. We'll create a file, `app/channels/messages_channel`. Here we will define our channel to inherit from the `ApplicationCable::Channel` class that we described earlier on. 
+
+```ruby
+# app/channels/messages_channel.rb
+
+class MessagesChannel < ApplicationCable::Channel  
+
+end  
+```
+
+Our Messages Channel needs only one method for our purposes, the `#subscribed` method. This method is responsible for streaming messages from, i.e. subscribing to, messages that we will broadcast to this channel. 
+
+```ruby
+# app/channels/messages_channel.rb
+class MessagesChannel < ApplicationCable::Channel  
+  def subscribed
+    stream_from 'messages'
+  end
+end  
+```
+
+We'll revisit this method in a bit, and discuss how and when it is invoked. First, let's define how and when Action Cable should broadcast new messages to this channel. 
+
+#### Step 2: Broadcast to the Channel
+
+At one point in time should a new message get broadcast to the Messages Channel? Immediately after it is created and persisted to the database. So, we'll define our broadcasting code within the `#create` action of the Messages Controller.
+
+```ruby
+#  app/controllers/messages_controller.rb
+
+class MessagesController < ApplicationController
+
+  def create
+    message = Message.new(message_params)
+    message.user = current_user
+    if message.save
+      ActionCable.server.broadcast 'messages',
+        message: message.content,
+        user: message.user.username
+      head :ok
+    end
+  end
+  
+  ...
+end
+```
+
+Here we are calling the `#broadcast` method on our Action Cable server, and passing it three arguments:
+
+  * `'messages'`, the name of the channel to which we are broadcasting. 
+  * Some content that will be sent through the channel as JSON: 
+    * `message`, set to the content of the message we just created. 
+    * `user`, set to the username of the user who created the message. 
+
+
+**Note:** There is nothing special about the `message` or `user` key here. We can structure or label the data we want to send across the channel any way we like. As long as we tell our subscriber (more on that soon) to access that data in accordance with how we structured it here.
+
+#### Step 3: Action Cable Loves Redis
+
+This isn't a "step", since we don't have to actually do anything (yet). But let's take a moment to look at how Action Cable pairs with Redis. 
+
+Action Cable uses Redis to send and receive messages over the channel.
+
+So, when we told our Action Cable server to `#broadcast` to `'messages'`, we were actually saying "send new messages to the 'messages' channel maintained by Redis." 
+
+At the same time, the `#subscribed` method of our Messages Channel is *really* streaming messages sent over the `'messages'` channel maintained by Redis. 
+
+Thus, Redis acts as a data store and ensures that messages will remain in sync across instances of our application. 
+
+Action Cable will look for the Redis configuration in `Rails.root.join('config/cable.yml')`. When we generated our new Rails 5 app, we also generated a file, `config/cable.yml`, that looks like this:
+
+```ruby
+production:
+  adapter: redis
+  url: redis://localhost:6379/1
+
+development:
+  adapter: async
+
+test:
+  adapter: async
+``` 
+
+Here, we are specifying an adapter and a URL for each environment. We'll be running Redis on localhost for now. Later, when we discuss deployment, we'll update the production environment's Redis URL. 
+
+### Defining the Channel's Subscriber
+
+We're almost done! We just need to create a client-side subscriber to our Messages Channel. 
+
+Recall that earlier, we created our consumer with the following lines of code:
+
+```ruby
+// app/assets/javascripts/channels/chatrooms.js
+
+this.App = {};
+
+App.cable = ActionCable.createConsumer();  
+```
+
+Our consumer is the clien-side end of our persistent WebSocket connection. 
+
+Now, we need to add a subscription to our consumer, telling it to subscribe to the Messages Channel. 
+
+Create a file, `app/assets/javascripts/channels/messages.js`. Here we will define our subscription:
+
+```ruby
+// app/assets/javascripts/channels/messages.js
+
+App.messages = App.cable.subscriptions.create('MessagesChannel', {  
+  received: function(data) {
+    $("#messages").removeClass('hidden')
+    return $('#messages').append(this.renderMessage(data));
+  },
+  
+  renderMessage: function(data) {
+    return "<p> <b>" + data.user + ": </b>" + data.message + "</p>";
+  }
+});
+```
+
+We add our new subscription to our consumer with `App.cable.subscriptions.create`. We give this function an argument of the name of the channel to which we want to subscribe, `MessagesChannel`, 
+
+
+
+- subscription function and how it works
+- appending messages to the DOM
+- then...production env and deploy!!
+
+----
 
 
  
