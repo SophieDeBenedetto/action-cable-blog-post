@@ -13,7 +13,7 @@ Real-time web, in contrast, loosly describes a system in which users recieve new
 
 There are a number of strategies and technologies for implementing such real-time functionality, but WebSocket protocol has been rising to prominence since its development in 2009. 
 
-### What are WebSockets?
+## What are WebSockets?
 
 WebSockets are a protocol built on top of TCP. They hold the connection to the server open so that the server can send information to the client––not only in response to a request from the client. Web sockets allow for bi-directional (called "full duplex") communication between the client and the server by creating a persistant connection between the two.
 
@@ -23,7 +23,7 @@ Up until very recently, implementing WebSocket protocol in Rails was difficult. 
 
 However, with the development of Action Cable, and its recent integration into Rails 5, we now have a full-stack, easy-to-use implementation of WebSockets that follows the Rails design patterns we've come to rely on. 
 
-### The Path to Real Time Rails
+## The Path to Real Time Rails
 
 In his keynote talk at RailsConf 2015, DHH unveiled Action Cable, since calling it "the highlight of Rails 5". 
 
@@ -41,7 +41,7 @@ Having tried to work with earlier version of Action Cable, before it was merged 
 
 So, how does the "highlight" of Rails 5 work, and what's it like to implement? Let's take a closer look
 
-### Introducing Action Cable
+## Introducing Action Cable
 
 Action Cable
 
@@ -492,11 +492,79 @@ Then, the `received` function is invoked, with an argument of this new message J
 
 ![](figure_two.png)
 
+## Deploying our Application to Heroku
 
+Now that our real-time messaging feature is up and running, we're ready to deploy! Deploying a Rails 5 app that uses Action Cable is simple. 
 
-- subscription function and how it works
-- appending messages to the DOM
-- then...production env and deploy!!
+We just need to configure a few things for our production environment. 
+
+### Step 1: Create Your Heroku App
+
+First things first through, let's create our Heroku app:
+
+```bash
+heroku create action-cable-example-app
+```
+
+### Step 2: Provision the Redis To Go Addon
+
+In the command line, run:
+
+```bash
+heroku addons:add redistogo
+```
+
+Then, retrieve your Redis To Go URL and update your Action Cable Redis configuration. 
+
+```bash
+$ heroku config --app action-cable-example | grep REDISTOGO_URL
+REDISTOGO_URL:            redis://redistogo:d0ed635634356d4408c1effb00bc9493@hoki.redistogo.com:9247/
+``` 
+
+```ruby
+# config/cable.yml
+
+production:
+  adapter: redis
+  url: redis://redistogo:d0ed635634356d4408c1effb00bc9493@hoki.redistogo.com:9247/
+
+development:
+  adapter: async
+
+test:
+  adapter: async
+```
+
+### Step 3: Configure Action Cable's Production URI
+
+We need to set the cable server's URI for production. 
+
+```ruby
+# config/environments/production.rb
+
+config.web_socket_server_url = "wss://action-cable-example.herokuapp.com/cable" 
+```
+
+**Note:** In production, we are using a *secure* WebSocket connection, `wss`. 
+
+### Step 4: Allowed Request Origins
+
+Action Cable can only accept WebSocket requests from specified origins. We need to pass those origins to the Action Cable server's configuration as an array.
+
+```ruby
+# config/environments/production.rb
+
+config.action_cable.allowed_request_origins = ['https://action-cable-example.herokuapp.com', 'http://action-cable-example.herokuapp.com']
+```
+
+### Step 5: Deploy!
+
+Now we're ready to `git push heroku master`. Go ahead and migrate your database and you should be good to go. 
+
+## Action Cable: Comprehensive, Sleek and Easy to Use
+
+So, how does Action Cable stack up to DHH's claims, one year later?
+
 
 ----
 
