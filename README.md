@@ -565,61 +565,12 @@ Now we're ready to `git push heroku master`. Go ahead and migrate your database 
 
 So, how does Action Cable stack up to DHH's claims, one year later?
 
+So far, we've seen that Action Cable runs seamlessly alongside our main Rails application. It's implementation falls right in line with the design patterns we've become so familiar with. 
 
-----
+We mount the Action Cable server in the `routes.rb` file, alongside the rest of our routes. We write the code to broadcast new messages in the `#create` action of the Messages Controller, and we subscribe to those messages in a channel we define similarly to the manner in which we define Rails controllers. 
 
+Not only does Action Cable seamless integrate with the rest of our Rails application, it provides easy-to-use client-side code, making it a full stack offering. 
 
- 
+Above all, it allows Rails developers who want real-time functionality to be totally self-reliant. We no longer need to look towards external libraries like Faye and Private Pub or implement strategies like JavaScript polling. With the addition of Action Cable, Rails is a truly integrated system with which to build a full-stack application. 
 
-I. Real Time Communication and Rails
- * Rails and WebSocket protocol: 
-    * what are websockets and why do we need them? 
-    * Ruby and websockets don't necessarily play nice, life before action cable was hard. we had some options--faye/private_pub etc., but a lot of       
-      hacking was required.
- 
-II. What is Action Cable: brief intro/definition
-
-III. Let's Build It! Setting up a basic chatting application in Rails 5 with Action Cable
-  * Brief set up: messages, chatrooms, user resources
-  * Implementing Action Cable to broadcast and stream new messages to the appropriate chatroom
-       * set up the new message broadcast on message create
-       * establish the messages channel, tell it to stream messages broadcast from create
-       * client side: subscribe to messages stream from the client side
-  * Configuring Action Cable to run on our main application server
-       * Action Cable is running its own separate processes on a sub-URI of your main server
-       * How to configure application to do so: mount Action Cable server in your routes file, configure action cable + redis, on the client side, create the          web socket consumer
-
-IV. Deploying to Heroku
-   * Configuring Puma (or any threaded server)
-   * Add-ons: Redis
-   * Action Cable in development vs. production environment
-   * That's it!
-"dealing with websockets is a pain in the ass"
--DHH
-
-"there must be a great implementation that I can just rip off" (Phoenix)
-
-"If you can make websockets even less work than polling, why wouldn't you do it?"
-
-Campfire polls once every 3 seconds. 
-
-"What if there was something where we could take all 3 use cases, in the same app, and use the same system to build it?"
-
-AC: every user creates one connection to the app, one cable. that cable is the ws connection. one session = one connection. Over that cable, we layer different channel. Those diff channels are those diff use cases (inbox, notifications, chat). Same socket connection, different channels using the connection. 
-
-Concept of the broadcaster: the mechanism on the server side that sends stuff through these channels, to the user. That connection uses Redis pub/sub becuase it is "stupid simple and easy to use". 
-
-Once connection per session. When you make that connection, you have to authenticate it. Initiate http connection, then switch over to WS connection using the cookie that was just established. 
-
-Channel: I want to consume _this_ stuff. 
-create new client-side channel by extending from AC.Channel. Relate that channel to a DOM element, using a data-behavior or data-attribute. Initially, instantiate this channel as a persistent connection. 
-
-Important: received function: subscribe to the server side and say "i want everything that is coming in to this chatroom, i.e. all the messages that are sent by the messages broadcast". Have to have a corresponding channel on the server-side. When JS function is instantiated, it automatically matches up to the server side channel, calls subscribed, which subscribes to a specific redis pub-sub channel. That redis pub/sub channel has to have a name. (keep messages in sync across app instances)/data store for transient data. 
-
-broadcast to redis channel, stream from redis channel
-
-SELF RELIANCE: Examples of self-reliance. Using an integrated system to allow tiny teams to create full-stack app. 
-
-you want that swiss army knife in your backpack to be able to do all sorts of things, because you are only able to carry a few things. "That's unpure"
-
-EventMachine does the connection logic: create and disconnect WS connection. Not great for application logic. Pairs with Thread to use existing models/integrated system of your main application. 
+Over all, Action Cable is a very welcome addition to the Rails swiss army knife. 
