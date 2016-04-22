@@ -90,6 +90,7 @@ Done installing documentation for rails after 1 seconds
 1 gem installed
 ```
 
+* You'll also need to have Postgres and Redis installed in order to build this app. You can `brew install redis` and `brew install postgres` if you haven't done so already.
 * Now we're ready to generate our new app!
 
 ```bash
@@ -136,7 +137,6 @@ class Chatroom < ApplicationRecord
   has_many :messages, dependent: :destroy
   has_many :users, through: :messages
   validates :topic, presence: true, uniqueness: true, case_sensitive: false
-  before_validation :sanitize, :slugify
 end
 ```
 
@@ -163,7 +163,7 @@ end
 
 We'll also assume that our routes and controllers are up and running. A user can log in with a username, visit a chatroom and create new messages via a form on the chatroom's show page. 
 
-So, the `#show` action of the Chatrooms Controller sets up both a `@chatroom` instance as well as a new, empty `@message` instance that will be used to build our form for a new message, on the chatroom's show page:
+Accordingly, the `#show` action of the Chatrooms Controller sets up both a `@chatroom` instance as well as a new, empty `@message` instance that will be used to build our form for a new message, on the chatroom's show page:
 
 ```ruby
 # app/controllers/chatrooms_controller.rb
@@ -226,7 +226,7 @@ class MessagesController < ApplicationController
     if message.save
       # do some stuff
     else 
-      # redirect_to chatrooms_path
+      redirect_to chatrooms_path
     end
   end
 
@@ -256,7 +256,8 @@ When we generated our brand new Rails 5 application, the following directory was
 
 Our `ApplicationCable` module has a `Channel` and a `Connection` class defined for us. 
 
-The `Connection` class is where we would authorize the incoming connection––for example if we wanted to establish a channel that required user authorization, like for a given user's inbox. We'll also leave this class alone as any user can join any chatroom at any time. 
+The `Connection` class is where we would authorize the incoming connection––for example if we wanted to establish a channel that required user authorization, like for a given user's inbox. We'll leave this class alone, as any user can join any chatroom at any time. However, the Messages Channel that we will define shortly will inherit from `ApplicationCable::Channel`.
+
 
 ```ruby
 module ApplicationCable
@@ -264,11 +265,7 @@ module ApplicationCable
   end
 end
 ```
-
-
-However, the Messages Channel that we will define shortly will inherit from `ApplicationCable::Channel`.
-
-The `Channel` class is where we would place shared logic among any additional channels that we will define. We'll only be creating one channel, the Messages Channel, so we'll leave this class alone. 
+The `Channel` class is where we would place shared logic among any additional channels that we will define. We'll only be creating one channel, the Messages Channel, so we'll leave this class alone as well. 
 
 ```ruby
 # app/channels/channel.rb
@@ -305,7 +302,7 @@ Rails.application.routes.draw do
 end
 ```
 
-Now, Action Cable will be listening for WebSocket requests on `ws://localhost:3000/cable`. It will do so by using the Rack socket hijacking API. When our main application is instantiated, an instance of Action Cable will also be created. Action Cable will, per our instructions in the `route.rb` file, establish a WebSocket connection on `localhost:3000/cable`, and begin listening for socket requests on that URI. 
+Now, Action Cable will be listening for WebSocket requests on `ws://localhost:3000/cable`. It will do so by using the Rack socket hijacking API. When our main application is instantiated, an instance of Action Cable will also be created. Action Cable will, per our instructions in the `routes.rb` file, establish a WebSocket connection on `localhost:3000/cable`, and begin listening for socket requests on that URI. 
 
 Now that we've established the socket connection on the server-side, we need to create the client of the WebSocket connection, called the **consumer.**
 
@@ -333,7 +330,7 @@ App.cable = ActionCable.createConsumer();
 //= require_tree ./channels
 ```
 
-Notice that the `ActionCable.createConsumer` function *doesn't specify the socket URI, `ws://localhost:3000/cable`. 
+Notice that the `ActionCable.createConsumer` function *doesn't specify the socket URI*, `ws://localhost:3000/cable`. 
 
 How does the consumer know where to connect? We'll specify the development and production socket URIs in the appropriate environment files, and pass it through to the consumer via the `action_cable_meta_tag`.
 
@@ -346,7 +343,7 @@ Rails.application.configure do
 end 
 ```
 
-The following line, included for us in the head of our application layout:
+The following line is included for us in the head of our application layout:
 
 ```erb
 # app/vippews/layouts/application.html.erb
@@ -359,7 +356,7 @@ The following line, included for us in the head of our application layout:
 
 ### Building the Channel
 
-So far, we've used Action Cable to create a persistent connection, listening for any WebSocket requests on `ws://localhost:3000/cable`. This isn't enough to get our real-time messaging feature, however. We need to define a special Messages Channel and instruct the appropriate parts of our application to broadcast to and stream from this channel. Let's get started. 
+So far, we've used Action Cable to create a persistent connection, listening for any WebSocket requests on `ws://localhost:3000/cable`. This isn't enough to get our real-time messaging feature, however. We need to define a special Messages Channel and instruct the appropriate parts of our application to broadcast to and stream from this channel.  
 
 #### Step 1: Define the Channel
 
@@ -384,7 +381,7 @@ class MessagesChannel < ApplicationCable::Channel
 end  
 ```
 
-We'll revisit this method in a bit, and discuss how and when it is invoked. First, let's define how and when Action Cable should broadcast new messages to this channel. 
+We'll revisit this method in a bit, and discuss how and when it is invoked. First, let's define how and when Action Cable should broadcast new messages to the channel. 
 
 #### Step 2: Broadcast to the Channel
 
@@ -410,7 +407,7 @@ class MessagesController < ApplicationController
 end
 ```
 
-Here we are calling the `#broadcast` method on our Action Cable server, and passing it three arguments:
+Here we are calling the `#broadcast` method on our Action Cable server, and passing it arguments:
 
   * `'messages'`, the name of the channel to which we are broadcasting. 
   * Some content that will be sent through the channel as JSON: 
@@ -424,9 +421,7 @@ Here we are calling the `#broadcast` method on our Action Cable server, and pass
 
 This isn't a "step", since we don't have to actually do anything (yet). But let's take a moment to look at how Action Cable pairs with Redis. 
 
-Action Cable uses Redis to send and receive messages over the channel.
-
-So, when we told our Action Cable server to `#broadcast` to `'messages'`, we were actually saying "send new messages to the 'messages' channel maintained by Redis." 
+Action Cable uses Redis to send and receive messages over the channel. So, when we told our Action Cable server to `#broadcast` to `'messages'`, we were actually saying "send new messages to the 'messages' channel maintained by Redis." 
 
 At the same time, the `#subscribed` method of our Messages Channel is *really* streaming messages sent over the `'messages'` channel maintained by Redis. 
 
@@ -462,7 +457,7 @@ this.App = {};
 App.cable = ActionCable.createConsumer();  
 ```
 
-Our consumer is the clien-side end of our persistent WebSocket connection. 
+Our consumer is the client-side end of our persistent WebSocket connection. 
 
 Now, we need to add a subscription to our consumer, telling it to subscribe to the Messages Channel. 
 
@@ -570,8 +565,8 @@ So far, we've seen that Action Cable runs seamlessly alongside our main Rails ap
 
 We mount the Action Cable server in the `routes.rb` file, alongside the rest of our routes. We write the code to broadcast new messages in the `#create` action of the Messages Controller, and we subscribe to those messages in a channel we define similarly to the manner in which we define Rails controllers. 
 
-Not only does Action Cable seamless integrate with the rest of our Rails application, it provides easy-to-use client-side code, making it a full stack offering. 
+Not only does Action Cable seamlessly integrate with the rest of our Rails application, it provides easy-to-use client-side code, making it a full stack offering. 
 
 Above all, it allows Rails developers who want real-time functionality to be totally self-reliant. We no longer need to look towards external libraries like Faye and Private Pub or implement strategies like JavaScript polling. With the addition of Action Cable, Rails is a truly integrated system with which to build a full-stack application. 
 
-Over all, Action Cable is a very welcome addition to the Rails swiss army knife. 
+Over all, Action Cable is a very welcome addition to the Rails tool kit.
