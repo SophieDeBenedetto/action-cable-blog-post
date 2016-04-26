@@ -5,9 +5,9 @@
 -----------
 
 
-Recent years have seen the speedy rise of "the real-time web". Web apps we use every day rely on real-time features—so that you see new posts magically appearing at the top of your feeds without having to lift a finger. 
+Recent years have seen the speedy rise of "the real-time web". Web apps we use every day rely on real-time features––so that you see new posts magically appearing at the top of your feeds without having to lift a finger. 
 
-While we may take features such as these for granted, they represent a significant departure from the HTTP protocol's strict request-response pattern. Real-time web, by contrast, loosely describes a system in which users receive new information from the server as soon as it is created—no request required.
+While we may take features such as these for granted, they represent a significant departure from the HTTP protocol's strict request-response pattern. Real-time web, by contrast, loosely describes a system in which users receive new information from the server as soon as it is created––no request required.
 
 There are a number of strategies and technologies for implementing such real-time functionality, but WebSocket protocol has been rising to prominence since its development in 2009. 
 
@@ -15,9 +15,8 @@ There are a number of strategies and technologies for implementing such real-tim
 
 WebSockets are a protocol built on top of TCP. They hold the connection to the server open so that the server can send information to the client––not only in response to a request from the client. Web sockets allow for bi-directional (called "full duplex") communication between the client and the server by creating a persistent connection between the two.
 
-**diagram of websocket vs http?**
-
-How is such a bi-directional connection initiated? A client makes a request to the server and, if that request contains an `upgrade` header that specifies `websocket`, the browser will initiate a socket connection, which is held open between the client and the server. 
+![](figure_one_a.png)
+![](figure_one_b.png)
 
 Up until very recently, implementing WebSocket protocol in Rails was difficult. There was no native support, and any real-time feature required integrating third party libraries and strategies like Faye or Javascript polling. 
 
@@ -25,9 +24,9 @@ However, with the development of Action Cable, and its recent integration into R
 
 ## The Path to Real Time Rails
 
-It took until 2015 for DHH to unveil ActionCable, and he didn't mince words. For starters, "dealing with WebSockets is a pain in the [you know what]". And although it wasn't necessarily a pleasure to code, you *could* build real-time features into Rails with nothing more than Faye and long-polling. In fact, Campfire, Basecamp's own chatting application has been using polling for about a decade, and I've built real-time features that way too.  
+It took until 2015 for DHH to unveil ActionCable, and he didn't mince words about why. For starters, "dealing with WebSockets is a pain in the [you know what]". And although it wasn't necessarily a pleasure to code, you *could* build real-time features into Rails with nothing more than Faye and Javascript polling. In fact, Campfire, Basecamp's own chatting application, has been using polling for about a decade, and I've built real-time features that way too.  
 
-But sometimes, 'good enough' isn't quite enough. Says DHH: "If you can make WebSockets even less work than polling, why wouldn't you do it?" We've heard DHH identify as a developer "prepper" in the past: he packs just enough tools in his backpack to get something up and running. And sure, polling met the needs of his team, and many others, for many years. But as more and more consumers and developers began demanding real time functionality, and as newer frameworks like Phoenix arrived to meet that demand, Rails felt the need to deliver. (In fact, Action Cable draws some inspiration from Phoenix channels).
+But sometimes, 'good enough' isn't quite enough. Says DHH: "If you can make WebSockets even less work than polling, why wouldn't you do it?" We've heard DHH identify as a developer "prepper" in the past: he packs just enough tools in his backpack to get something up and running. And sure, polling met the needs of his team, and many others, for many years. But, as more and more consumers and developers began demanding real time functionality, and as newer frameworks like Phoenix arrived to meet that demand, Rails felt the need to deliver. (In fact, Action Cable draws some inspiration from Phoenix channels).
 
 It hasn't been smooth sailing. I've followed the development of Action Cable closely, and before it was merged into Rails 5, I would say that it *wasn't* easier than polling. Now, however, it's very easy to implement, and it aligns nicely with the other design patterns we've become so comfortable with in Rails.
 
@@ -51,7 +50,7 @@ Action Cable offers server-side code to broadcast certain content (think new mes
 
 Lastly, Action Cable uses Redis as a data store for transient data, syncing content across instances of your application. 
 
-![](Figure 1)
+![](figure_2.png)
 
 Now that we have a basic understanding of how Action Cable works, we'll build out a basic chatting application in Rails 5, taking a closer look at how Action Cable behaves along the way. 
 
@@ -476,7 +475,7 @@ When this `subscriptions.create` function is invoked, it will invoke the `Messag
 
 Then, the `received` function is invoked, with an argument of this new message JSON. The `received` function in turn calls a helper function that we have defined, `renderMessage`, which simply appends new messages to the the DOM, using the `$("#messages")` jQuery selector, which can be found on the chatroom show page. 
 
-![](figure_two.png)
+![](figure_three.png)
 
 ## Deploying our Application to Heroku
 
