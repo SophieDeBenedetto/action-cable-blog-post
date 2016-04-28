@@ -34,7 +34,7 @@ So, how does the "highlight" of Rails 5 work, and what's it like to implement? L
 
 ## Introducing Action Cable
 
-So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that Channels develops the same*). And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including ActiveRecord (or any other ORM). 
+So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that Channels develops the same*). And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including Active Record (or any other ORM). 
 
 #### Action Cable Under the Hood
 
