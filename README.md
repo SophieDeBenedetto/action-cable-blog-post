@@ -5,11 +5,11 @@
 -----------
 
 
-Recent years have seen the speedy rise of "the real-time web". Web apps we use every day rely on real-time features––so that you see new posts magically appearing at the top of your feeds without having to lift a finger. 
+Recent years have seen the speedy rise of "the real-time web." Web apps we use every day rely on real-time features––so that you see new posts magically appearing at the top of your feeds without having to lift a finger. 
 
-While we may take features such as these for granted, they represent a significant departure from the HTTP protocol's strict request-response pattern. Real-time web, by contrast, loosely describes a system in which users receive new information from the server as soon as it is created––no request required.
+While we may take those features for granted, they represent a significant departure from the HTTP protocol's strict request-response pattern. Real-time web, by contrast, loosely describes a system in which users receive new information from the server as soon as it is available––no request required.
 
-There are a number of strategies and technologies for implementing such real-time functionality, but WebSocket protocol has been rising to prominence since its development in 2009. 
+There are a number of strategies and technologies for implementing such real-time functionality, but the [WebSocket protocol](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) has been rising to prominence since its development in 2009.
 
 ## What are WebSockets?
 
@@ -20,27 +20,30 @@ WebSockets are a protocol built on top of TCP. They hold the connection to the s
 
 Up until very recently, implementing WebSocket protocol in Rails was difficult. There was no native support, and any real-time feature required integrating third party libraries and strategies like Faye or Javascript polling. 
 
-However, with the development of Action Cable, and its recent integration into Rails 5, we now have a full-stack, easy-to-use implementation of WebSockets that follows the Rails design patterns we've come to rely on.  The only question is why it took so long.
+However, with the development of Action Cable and its recent integration into Rails 5, we now have a full-stack, easy-to-use implementation of WebSockets that follows the Rails design patterns we've come to rely on.  The only question is why it took so long.
 
-## The Path to Real Time Rails
+## The Path to Real-Time Rails
 
-It took until 2015 for DHH to unveil ActionCable, and he didn't mince words about why. For starters, "dealing with WebSockets is a pain in the [you know what]". And although it wasn't necessarily a pleasure to code, you *could* build real-time features into Rails with nothing more than Faye and Javascript polling. In fact, Campfire, Basecamp's own chatting application, has been using polling for about a decade, and I've built real-time features that way too.  
+In 2015, Rails' [benevolent-dictator-for-life DHH](https://twitter.com/dhh) changed his tune about sockets. He started by acknowledging an important truth: that ["dealing with WebSockets is a pain in the [you know what]."](https://www.youtube.com/watch?v=KJVTM7mE1Cc) And although it wasn't necessarily a pleasure to code, you *could* build real-time features into Rails with nothing more than Faye and Javascript polling. In fact, Campfire, Basecamp's own chatting application, has been using polling for about a decade, and I've built compelling real-time features that way too.
 
-But sometimes, 'good enough' isn't quite enough. Says DHH: "If you can make WebSockets even less work than polling, why wouldn't you do it?" We've heard DHH identify as a developer "prepper" in the past: he packs just enough tools in his backpack to get something up and running. And sure, polling met the needs of his team, and many others, for many years. But, as more and more consumers and developers began demanding real time functionality, and as newer frameworks like Phoenix arrived to meet that demand, Rails felt the need to deliver. (In fact, Action Cable draws some inspiration from Phoenix channels).
+But even DHH knew there's something lost without sockets. "If you can make WebSockets even less work than polling, why wouldn't you do it?" Sure, polling met the needs of his team (and many others) for many years. But as more and more consumers and developers began demanding real-time functionality, and as newer frameworks like [Phoenix](http://www.phoenixframework.org/) arrived to meet that demand, Rails felt the need to deliver—and in fact, Action Cable draws some inspiration from Phoenix channels.
 
-It hasn't been smooth sailing. I've followed the development of Action Cable closely, and before it was merged into Rails 5, I would say that it *wasn't* easier than polling. Now, however, it's very easy to implement, and it aligns nicely with the other design patterns we've become so comfortable with in Rails.
+It hasn't been smooth sailing. I've followed the development of Action Cable closely, and before it was merged into Rails 5, I would say that it *wasn't* easier than polling. But after a year of development, it's very easy to implement, and it aligns nicely with the other design patterns we've become so comfortable with in Rails.
 
 So, how does the "highlight" of Rails 5 work, and what's it like to implement? Let's take a closer look!
 
 ## Introducing Action Cable
 
-So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that Channels develops the same*). And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including Active Record (or any other ORM). 
+So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that [Channels](http://channels.readthedocs.io/en/latest/) develops the same*). 
+And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including Active Record (or any other ORM). 
 
 #### Action Cable Under the Hood
 
 Before we dive in to some code, let's take a closer look at how Action Cable opens and maintains the WebSocket connection inside our Rails 5 application. 
 
 Action Cable can be run on a stand-alone server, or we can configure it to run on its own processes within the main application server. In this post, we'll be taking a look at the second approach. 
+
+![](assets/figure_two.png)
 
 Action Cable uses the Rack socket hijacking API to take over control of connections from the application server. Action Cable then manages connections internally, in a multithreaded manner, layering as many channels as you care to define over that socket connection. 
 
@@ -49,8 +52,6 @@ For every instance of your application that spins up, an instance of Action Cabl
 Action Cable offers server-side code to broadcast certain content (think new messages or notifications) over the channel, to a subscriber. The subscriber is instantiated on the client-side with a handy JavaScript function that uses jQuery to append new content to the DOM. 
 
 Lastly, Action Cable uses Redis as a data store for transient data, syncing content across instances of your application. 
-
-![](assets/figure_two.png)
 
 Now that we have a basic understanding of how Action Cable works, we'll build out a basic chatting application in Rails 5, taking a closer look at how Action Cable behaves along the way. 
 
@@ -548,9 +549,9 @@ Now we're ready to `git push heroku master`. Go ahead and migrate your database 
 
 ## Action Cable: Comprehensive, Sleek and Easy to Use
 
-So, how does Action Cable stack up to DHH's claims, one year later?
+So how does Action Cable stack up to DHH's claims, one year later?
 
-So far, we've seen that Action Cable runs seamlessly alongside our main Rails application. It's implementation falls right in line with the design patterns we've become so familiar with. 
+So far, we've seen that Action Cable runs seamlessly alongside our main Rails application. Its implementation falls right in line with the design patterns we've become so familiar with. 
 
 We mount the Action Cable server in the `routes.rb` file, alongside the rest of our routes. We write the code to broadcast new messages in the `#create` action of the Messages Controller, and we subscribe to those messages in a channel we define similarly to the manner in which we define Rails controllers. 
 
