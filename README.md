@@ -15,8 +15,8 @@ There are a number of strategies and technologies for implementing such real-tim
 
 WebSockets are a protocol built on top of TCP. They hold the connection to the server open so that the server can send information to the client––not only in response to a request from the client. Web sockets allow for bi-directional (called "full duplex") communication between the client and the server by creating a persistent connection between the two.
 
-![](figure_one_a.png)
-![](figure_one_b.png)
+![](assets/figure_one_a.png)
+![](assets/figure_one_b.png)
 
 Up until very recently, implementing WebSocket protocol in Rails was difficult. There was no native support, and any real-time feature required integrating third party libraries and strategies like Faye or Javascript polling. 
 
@@ -50,7 +50,7 @@ Action Cable offers server-side code to broadcast certain content (think new mes
 
 Lastly, Action Cable uses Redis as a data store for transient data, syncing content across instances of your application. 
 
-![](figure_2.png)
+![](assets/figure_two.png)
 
 Now that we have a basic understanding of how Action Cable works, we'll build out a basic chatting application in Rails 5, taking a closer look at how Action Cable behaves along the way. 
 
@@ -475,7 +475,7 @@ When this `subscriptions.create` function is invoked, it will invoke the `Messag
 
 Then, the `received` function is invoked, with an argument of this new message JSON. The `received` function in turn calls a helper function that we have defined, `renderMessage`, which simply appends new messages to the the DOM, using the `$("#messages")` jQuery selector, which can be found on the chatroom show page. 
 
-![](figure_three.png)
+![](assets/figure_three.png)
 
 ## Deploying our Application to Heroku
 
