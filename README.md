@@ -438,7 +438,7 @@ We're almost done! We just need to create a client-side subscriber to our Messag
 
 Recall that earlier, we created our consumer with the following lines of code:
 
-```ruby
+```javascript
 // app/assets/javascripts/channels/chatrooms.js
 
 this.App = {};
@@ -452,7 +452,7 @@ Now, we need to add a subscription to our consumer, telling it to subscribe to t
 
 Create a file, `app/assets/javascripts/channels/messages.js`. Here we will define our subscription:
 
-```ruby
+```javascript
 // app/assets/javascripts/channels/messages.js
 
 App.messages = App.cable.subscriptions.create('MessagesChannel', {  
