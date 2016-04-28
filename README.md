@@ -15,8 +15,8 @@ There are a number of strategies and technologies for implementing such real-tim
 
 WebSockets are a protocol built on top of TCP. They hold the connection to the server open so that the server can send information to the client––not only in response to a request from the client. Web sockets allow for bi-directional (called "full duplex") communication between the client and the server by creating a persistent connection between the two.
 
-![](figure_one_a.png)
-![](figure_one_b.png)
+![](assets/figure_one_a.png)
+![](assets/figure_one_b.png)
 
 Up until very recently, implementing WebSocket protocol in Rails was difficult. There was no native support, and any real-time feature required integrating third party libraries and strategies like Faye or Javascript polling. 
 
@@ -34,7 +34,7 @@ So, how does the "highlight" of Rails 5 work, and what's it like to implement? L
 
 ## Introducing Action Cable
 
-So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that Channels develops the same*). And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including ActiveRecord (or any other ORM). 
+So what do we have to look forward to? Well, it's what [the docs](https://github.com/rails/rails/tree/master/actioncable) call a "full-stack offering": it provides both a client-side JavaScript framework, and a server-side Ruby framework (*editor's note: as a Django dev, I'm hoping that Channels develops the same*). And because it integrates so tightly with Rails, we have access to all of our models from within our WebSocket workers, effectively layering Action Cable on top of our existing Rails architecture, including Active Record (or any other ORM). 
 
 #### Action Cable Under the Hood
 
@@ -50,7 +50,7 @@ Action Cable offers server-side code to broadcast certain content (think new mes
 
 Lastly, Action Cable uses Redis as a data store for transient data, syncing content across instances of your application. 
 
-![](figure_2.png)
+![](assets/figure_two.png)
 
 Now that we have a basic understanding of how Action Cable works, we'll build out a basic chatting application in Rails 5, taking a closer look at how Action Cable behaves along the way. 
 
@@ -438,7 +438,7 @@ We're almost done! We just need to create a client-side subscriber to our Messag
 
 Recall that earlier, we created our consumer with the following lines of code:
 
-```ruby
+```javascript
 // app/assets/javascripts/channels/chatrooms.js
 
 this.App = {};
@@ -452,7 +452,7 @@ Now, we need to add a subscription to our consumer, telling it to subscribe to t
 
 Create a file, `app/assets/javascripts/channels/messages.js`. Here we will define our subscription:
 
-```ruby
+```javascript
 // app/assets/javascripts/channels/messages.js
 
 App.messages = App.cable.subscriptions.create('MessagesChannel', {  
@@ -475,7 +475,7 @@ When this `subscriptions.create` function is invoked, it will invoke the `Messag
 
 Then, the `received` function is invoked, with an argument of this new message JSON. The `received` function in turn calls a helper function that we have defined, `renderMessage`, which simply appends new messages to the the DOM, using the `$("#messages")` jQuery selector, which can be found on the chatroom show page. 
 
-![](figure_three.png)
+![](assets/figure_three.png)
 
 ## Deploying our Application to Heroku
 
