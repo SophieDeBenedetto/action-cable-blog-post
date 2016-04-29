@@ -297,7 +297,7 @@ Now that we've established the socket connection on the server-side, we need to 
 
 #### Step 2: Establish the Socket Connection: Client-Side
 
-In `app/assets/javascripts/channels` we'll create a file: `chatrooms.js`. Here is where we will define the client-side instance of our WebSocket connection. 
+In `app/assets/javascripts/channels` we'll create a file: `chatrooms.js`. Here is where we will define the client-side instance of our WebSocket connection, and tell it to consume content being broadcast over the `/cable` sub-URI. 
 
 ```javascript
 // app/assets/javascripts/channels/chatrooms.js
@@ -308,7 +308,7 @@ In `app/assets/javascripts/channels` we'll create a file: `chatrooms.js`. Here i
 
 this.App = {};
 
-App.cable = ActionCable.createConsumer();  
+App.cable = ActionCable.createConsumer("/cable");  
 ```
 
 **Note:** Make sure you require the `channels` subdirectory in your asset pipeline by adding it to your `application.js` manifest file:
@@ -317,31 +317,7 @@ App.cable = ActionCable.createConsumer();
 // app/assets/javascripts/application.js
 
 //= require_tree ./channels
-```
-
-Notice that the `ActionCable.createConsumer` function *doesn't specify the socket URI*, `ws://localhost:3000/cable`. 
-
-How does the consumer know where to connect? We'll specify the development and production socket URIs in the appropriate environment files, and pass it through to the consumer via the `action_cable_meta_tag`.
-
-In development
-
-```ruby
-# config/development.rb
-Rails.application.configure do 
-  config.action_cable.url = "ws://localhost:3000/cable"
-end 
-```
-
-The following line is included for us in the head of our application layout:
-
-```erb
-# app/vippews/layouts/application.html.erb
-
-<%= action_cable_meta_tag %>
-```
-
-**Note:** The default Action Cable URI is in fact `ws://localhost:3000/cable`, so we could have gotten away without configuring the cable url in development. I wanted to expose this configuration for anyone who wants to customize it in the future. 
-
+``` 
 
 ### Building the Channel
 
@@ -443,7 +419,7 @@ Recall that earlier, we created our consumer with the following lines of code:
 
 this.App = {};
 
-App.cable = ActionCable.createConsumer();  
+App.cable = ActionCable.createConsumer("/cable");  
 ```
 
 Our consumer is the client-side end of our persistent WebSocket connection. 
@@ -520,19 +496,7 @@ test:
   adapter: async
 ```
 
-### Step 3: Configure Action Cable's Production URI
-
-We need to set the cable server's URI for production. 
-
-```ruby
-# config/environments/production.rb
-
-config.web_socket_server_url = "wss://action-cable-example.herokuapp.com/cable" 
-```
-
-**Note:** In production, we are using a *secure* WebSocket connection, `wss`. 
-
-### Step 4: Allowed Request Origins
+### Step 3: Allowed Request Origins
 
 Action Cable can only accept WebSocket requests from specified origins. We need to pass those origins to the Action Cable server's configuration as an array.
 
@@ -542,7 +506,7 @@ Action Cable can only accept WebSocket requests from specified origins. We need 
 config.action_cable.allowed_request_origins = ['https://action-cable-example.herokuapp.com', 'http://action-cable-example.herokuapp.com']
 ```
 
-### Step 5: Deploy!
+### Step 4: Deploy!
 
 Now we're ready to `git push heroku master`. Go ahead and migrate your database and you should be good to go. 
 
