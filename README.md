@@ -562,4 +562,4 @@ Above all, it allows Rails developers who want real-time functionality to be tot
 Over all, Action Cable is a very welcome addition to the Rails tool kit.
 
 -----
-**Sophie DeBenedetto** *is a web developer and an instructor at the Flatiron School. Her first love is Ruby on Rails, although she has developed projects with and written about Rails, Ember and Phoenix. You can learn more about her recent projects by visiting her [personal site](http://sophiedebenedetto.nyc/), checking out her [GitHub account](https://github.com/sophiedebenedetto), or reading her [blog](http://www.thegreatcodeadventure.com/).* 
+**Sophie DeBenedetto** *is a web developer and an instructor at the [Flatiron School](http://flatironschool.com/). Her first love is Ruby on Rails, although she has developed projects with and written about Rails, Ember and Phoenix. You can learn more about her recent projects by visiting her [personal site](http://sophiedebenedetto.nyc/), checking out her [GitHub account](https://github.com/sophiedebenedetto), or reading her [blog](http://www.thegreatcodeadventure.com/).* 
