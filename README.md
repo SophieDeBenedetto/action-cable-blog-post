@@ -327,7 +327,7 @@ How does the consumer know where to connect? We'll specify the development and p
 In development
 
 ```ruby
-# config/development.rb
+# config/environments/development.rb
 Rails.application.configure do 
   config.action_cable.url = "ws://localhost:3000/cable"
 end 
@@ -336,7 +336,7 @@ end
 The following line is included for us in the head of our application layout:
 
 ```erb
-# app/vippews/layouts/application.html.erb
+# app/views/layouts/application.html.erb
 
 <%= action_cable_meta_tag %>
 ```
